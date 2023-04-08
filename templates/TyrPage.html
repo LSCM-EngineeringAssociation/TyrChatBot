@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+<head>
+    <link rel="icon" href="/static/favicon.ico">
+    <title>Ask Tyr</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+    <style>
+        body {
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .sidebar {
+            width: 250px;
+            min-height: 100%;
+            position: fixed;
+            padding: 20px;
+            background-color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .sidebar .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar h4 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        #ask-tyr {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .sidebar img {
+            height: 100px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 20px;
+        }
+
+        .sidebar h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .sidebar .form-select,
+        .sidebar .form-range,
+        .sidebar .form-label {
+            color: #fff;
+        }
+
+        .sidebar .btn {
+            margin-bottom: 0.5rem;
+        }
+
+        .last-button {
+            margin-top: auto;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .chat-messages {
+            height: 800px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            font-weight: bold;
+        }
+
+        .assistant-message {
+            font-weight: bold;
+        }
+        .code-container {
+        background-color: #f8f8f8;
+        border: 1px solid #cccccc;
+        border-radius: 5px;
+        padding: 10px;
+        white-space: pre-wrap;
+        position: relative;
+        margin-bottom: 10px;
+        text-align: left;
+        }
+
+        h4 {
+            text-align: center;
+        }
+
+        .container {
+            padding: 0;
+        }
+
+        /* Additional styles */
+        body {
+            background-color: #f3f3f3;
+        }
+
+        .sidebar {
+            background-color: #343a40;
+        }
+
+        .main-content {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateX(-3px);
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/typeit@7.0.4/dist/typeit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <img class="mb-3 animate__animated animate__fadeInDown" src="/static/GOD_CHIBI.png" alt="" style="height: 100px; display: block; margin-left: auto; margin-right: auto;">
+        <h2 id="ask-tyr">Ask Tyr</h2>
+        <h4>Options</h4>
+        <div class="mb-2">
+            <select class="form-select" id="personality-selector" onchange="sendPersonality(this.value)">
+                <option value="0">Safe</option>
+                <option value="1">Normal</option>
+                <option value="2">Happy</option>
+                <option value="3">Satiric</option>
+                <option value="4">Highly Satirical</option>
+                <option value="5">Writing Helper</option>
+            </select>
+        </div>
+        <div class="mb-2">
+            <label for="temperature-slider" class="form-label">Temperature: <span id="temperature-value">0.7</span></label>
+            <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.7" id="temperature-slider">
+        </div>
+        <button type="button" class="btn btn-secondary mb-2 w-100" id="reset-btn">Reset Chat</button>
+        <button type="button" class="btn btn-secondary mb-2 w-100" id="api-key-btn">API KEY</button>
+        <button type="button" class="btn btn-secondary mb-2 w-100" id="robot-mode-button">Robot Mode</button>
+    </div>
+    <div class="main-content" data-aos="fade-left" data-aos-duration="1000">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Chat messages will be appended here. -->
+                    </div>
+                    <form id="message-form">
+                        <div class="input-group mb-3">
+                            <input type="text" id="message-input" class="form-control" placeholder="Type your message" aria-label="Type your message" aria-describedby="submit-button">
+                            <button type="submit" class="btn btn-primary" id="submit-button">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(() => {
+            // Initialize AOS library
+            AOS.init(); 
+            // Get references to HTML elements
+            const messageForm = $("#message-form");
+            const messageInput = $("#message-input");
+            const submitButton = $("#submit-button");
+            const chatMessages = $("#chat-messages");
+            const temperatureSlider = $("#temperature-slider");
+            const temperatureValue = $("#temperature-value");
+            const personalitySelector = $("#personality-selector");
+            const resetButton = $("#reset-btn");
+            const robotBtn = $("#robot-mode-button");
+            const selectedPersonality = personalitySelector.val();
+            const convers = [];
+            let isRobotModeActive = false;
+
+            resetButton.click(() => {
+                // Clear the chat messages
+                chatMessages.empty();
+            });
+            
+            robotBtn.click(() => {
+                console.log("Robot mode button clicked"); // Debugging statement
+                if (isRobotModeActive) {
+                    isRobotModeActive = false;
+                    return;
+                }
+                isRobotModeActive = true;
+                startRobotMode();
+            });
+
+            personalitySelector.on("change", () => {
+                $.ajax({
+                    type: "POST",
+                    url: "/update_personality",
+                    data: JSON.stringify({personality: selectedPersonality}),
+                    contentType: "application/json",
+                    success: (data) => {
+                        console.log("Personality updated:", data.personality);
+                    },
+                });
+            });
+
+            temperatureSlider.on("input", () => {
+                const temperature = temperatureSlider.val();
+                temperatureValue.text(temperature);
+
+                $.ajax({
+                    type: "POST",
+                    url: "/update_temperature",
+                    data: JSON.stringify({temperature: temperature}),
+                    contentType: "application/json",
+                    success: (data) => {
+                        console.log("Temperature updated:", data.temperature);
+                    },
+                });
+            });
+
+            async function startRobotMode() {
+                console.log("Robot mode started"); // Debugging statement
+                while (isRobotModeActive) {
+                    try {
+                        console.log("Getting user input...");
+                        const userMessage = await getUserInput();
+                        console.log("User input received:", userMessage);
+                        if (!isRobotModeActive) {
+                            break;
+                        }
+                        const chatbotResponse = await getChatbotResponse(userMessage);
+                        if (!isRobotModeActive) {
+                            break;
+                        }
+                        await playChatbotResponse(chatbotResponse);
+                    } catch (error) {
+                        console.error('An error occurred during robot mode:', error);
+                        break;
+                    }
+                }
+            }
+            async function getUserInput() {
+                return new Promise((resolve, reject) => {
+                    console.log('Starting speech recognition...');
+                    const SpeechRecognition = window.speechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        reject(new Error('Speech recognition is not supported in this browser.'));
+                        console.log('Error: Speech recognition is not supported in this browser.');
+                        return;
+                    }
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = 'en-US';
+                    recognition.interimResults = false;
+                    recognition.maxAlternatives = 1;
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        console.log("Transcript:", transcript); // Debugging statement
+                        resolve(transcript);
+                    };
+                    recognition.onerror = (event) => {
+                        console.error('Speech recognition error:', event.error); // Debugging statement
+                        reject(new Error('Speech recognition error: ' + event.error));
+                    };
+                    recognition.onend = () => {
+                        if (!recognition.error) {
+                            console.error('Speech recognition ended without results.'); // Debugging statement
+                            reject(new Error('Speech recognition ended without results.'));
+                        }
+                    };
+                    recognition.start();
+                });
+            }
+
+            async function getChatbotResponse(userMessage) {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversation: userMessage, personality: selectedPersonality}),
+                });
+
+                const data = await response.json();
+                return data.text;
+            }
+            async function playChatbotResponse(chatbotResponse) {
+                return new Promise(async (resolve, reject) => {
+                    const response = await fetch('/text_to_speech', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: chatbotResponse}),
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const audio = new Audio(URL.createObjectURL(blob));
+                        audio.addEventListener('ended', resolve);
+                        audio.play();
+                    } else {
+                        reject(new Error('Failed to generate speech'));
+                    }
+                });
+            }
+
+            // Submit message and display response when the form is submitted
+            messageForm.submit((event) => {
+                event.preventDefault();
+
+                // Get user message
+                const userMessage = messageInput.val().trim();
+
+                // Check if message is not empty
+                if (userMessage) {
+                    // Add user message to chat box and clear input
+                    chatMessages.append(`<div class="message user-message">You: ${userMessage}</div>`);
+                    messageInput.val("");
+
+                    // Scroll to the bottom of the chat box
+                    chatMessages.scrollTop(chatMessages[0].scrollHeight);
+
+                    // Disable submit button
+                    submitButton.prop("disabled", true);
+                    // Send user message to the server and get the response
+
+                    const textData = { conversation: userMessage, personality: selectedPersonality };
+                    console.log("Sending request:", userMessage, selectedPersonality);
+
+                    $.ajax({
+                        type: "POST",
+                        url: "/ask",
+                        data: JSON.stringify(textData),
+                        contentType: "application/json",
+                        success: (data) => {
+                            // Check if the response contains a code block.
+                            const codeBlockRegex = /`{3}(.*?)`{3}/gs;
+                            const codeBlockMatch = data.text.match(codeBlockRegex);
+                            convers.push({ role: "Tyr:", content: data.text });
+                            let assistantMessage = data.text;
+                            if (codeBlockMatch) {
+                                codeBlockMatch.forEach((codeBlock) => {
+                                    // Extract the code and create an HTML element
+                                    const code = codeBlock.substring(3, codeBlock.length - 3);
+                                    const codeContainer = `
+                                        <div class="code-container">
+                                            <pre><code>${code}</code></pre>
+                                        </div>`;
+
+                                        // Replace the code block with the new HTML element.
+                                        assistantMessage = assistantMessage.replace(codeBlock, codeContainer);
+                                });
+                            }
+                            
+                            // Create a new div element for the assistant's response
+                            const assistantResponseDiv = $('<div class="message assistant-message"></div>');
+                            chatMessages.append(assistantResponseDiv);
+                            
+                            // Type the assistant's response using TypeIt
+                            new TypeIt(assistantResponseDiv[0], {
+                                strings: `Tyr: ${assistantMessage}`,
+                                speed: 10,
+                                waitUntilVisible: false,
+                                cursor: false,
+                                html: true,
+                            }).go();
+                            // Scroll to the bottom of the chat box after typing is completed
+                            chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                            // Re-enable submit button
+                            submitButton.prop("disabled", false);
+                        },
+                    });
+                }
+            });
+        });
+
+        $("#api-key-btn").click(() => {
+            const newApiKey = prompt("Enter your API key:");
+            if (newApiKey) {
+                $.ajax({
+                    type: "POST",
+                    url: "/update-api-key",
+                    data: JSON.stringify({ api_key: newApiKey }),
+                    contentType: "application/json",
+                    success: (data) => {
+                        if (data.status === "success") {
+                            alert("API key updated successfully!");
+                        } else {
+                            alert("Error: Invalid API key.");
+                        }
+                    },
+                    error: () => {
+                        alert("Error with API key.");
+                    },
+                });
+            }
+        });
+    </script>
+</body>
+</html>
