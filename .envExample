@@ -1,0 +1,5 @@
+PINECONE_API_KEY = "YourPinecone-APIkey"
+PINECONE_API_ENV = "YourPinecone-EnvironmentID"
+OPENAI_API_KEY = "YourOpenAI-APIkey"
+elabs_apikey = "YourElevenLabs-APIkey"
+elabs_voice = "YourElevenLabs-VoiceID"
