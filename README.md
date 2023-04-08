@@ -5,10 +5,10 @@ This is the initial implementation of a webApp to control an Inmoov Robot using 
 
 Instructions:
 
-1. Install Requirements.txt
-2. input your api keys in the .env file
-3. run Tyr.py
-4. Ask away
+1. Install Requirements.txt.
+2. input your api keys in the ".envExample" file and rename it to just ".env".
+3. run Tyr.py.
+4. Ask away.
 
 # Next Features
 
