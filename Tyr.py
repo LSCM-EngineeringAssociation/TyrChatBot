@@ -29,7 +29,7 @@ global current_temperature
 global current_personality
 
 #OpenAI Controls
-current_temperature = 0.6
+current_temperature = 0.7
 current_personality = Personality.NORMAL
 
 Tyr = Flask(__name__)
@@ -153,7 +153,7 @@ def update_temperature():
 
 @Tyr.route('/text_to_speech', methods=['POST'])
 def text_to_speech():
-    ELABS_STAB = 0.40
+    ELABS_STAB = 0.70
     ELABS_SIMIL = 0.75
     try:
         text = request.get_json(force=True).get("text","")

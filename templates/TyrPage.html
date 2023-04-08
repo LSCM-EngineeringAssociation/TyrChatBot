@@ -171,6 +171,10 @@
         <button type="button" class="btn btn-secondary mb-2 w-100" id="reset-btn">Reset Chat</button>
         <button type="button" class="btn btn-secondary mb-2 w-100" id="api-key-btn">API KEY</button>
         <button type="button" class="btn btn-secondary mb-2 w-100" id="robot-mode-button">Robot Mode</button>
+        <div>
+            <label for="volume-slider" class="form-label">Volume: <span id="volume-value">50</span>%</label>
+            <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.5" id="volume-slider">
+        </div>
     </div>
     <div class="main-content" data-aos="fade-left" data-aos-duration="1000">
         <div class="container">
@@ -201,11 +205,13 @@
             const temperatureSlider = $("#temperature-slider");
             const temperatureValue = $("#temperature-value");
             const personalitySelector = $("#personality-selector");
+            const selectedPersonality = personalitySelector.val();
             const resetButton = $("#reset-btn");
             const robotBtn = $("#robot-mode-button");
-            const selectedPersonality = personalitySelector.val();
             const convers = [];
             let isRobotModeActive = false;
+            let volumeSlider = $("#volume-slider");
+            let volumeValue = $("#volume-value");
 
             resetButton.click(() => {
                 // Clear the chat messages
@@ -249,6 +255,11 @@
                 });
             });
 
+            volumeSlider.on("input", () => {
+                let currentVolume = Math.round(volumeSlider.val() * 100);
+                volumeValue.text(currentVolume);
+            });
+
             async function startRobotMode() {
                 console.log("Robot mode started"); // Debugging statement
                 while (isRobotModeActive) {
@@ -283,6 +294,7 @@
                     recognition.lang = 'en-US';
                     recognition.interimResults = false;
                     recognition.maxAlternatives = 1;
+                    recognition.continuous = true;
                     recognition.onresult = (event) => {
                         const transcript = event.results[0][0].transcript;
                         console.log("Transcript:", transcript); // Debugging statement
@@ -324,6 +336,7 @@
                         const blob = await response.blob();
                         const audio = new Audio(URL.createObjectURL(blob));
                         audio.addEventListener('ended', resolve);
+                        audio.volume = volumeSlider.val();
                         audio.play();
                     } else {
                         reject(new Error('Failed to generate speech'));
