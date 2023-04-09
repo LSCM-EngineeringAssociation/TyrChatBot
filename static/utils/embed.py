@@ -1,4 +1,4 @@
-from langchain.document_loaders import UnstructuredPDFLoader, OnlinePDFLoader
+""" from langchain.document_loaders import UnstructuredPDFLoader, OnlinePDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma, Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -52,4 +52,4 @@ def SemSearch(query):
         texts = process_pdf(loader)
         docsearch = index_documents(texts)
         result = answer_query(docsearch, query)
-    return result
+    return result """

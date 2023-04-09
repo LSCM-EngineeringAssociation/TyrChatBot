@@ -155,9 +155,9 @@
         <h2 id="ask-tyr">Ask Tyr</h2>
         <h4>Options</h4>
         <div class="mb-2">
-            <select class="form-select" id="personality-selector" onchange="sendPersonality(this.value)">
-                <option value="0">Safe</option>
-                <option value="1">Normal</option>
+            <select class="form-select" id="personality-selector">
+                <option value="0">Normal</option>
+                <option value="1">Safe</option>
                 <option value="2">Happy</option>
                 <option value="3">Satiric</option>
                 <option value="4">Highly Satirical</option>
@@ -205,7 +205,6 @@
             const temperatureSlider = $("#temperature-slider");
             const temperatureValue = $("#temperature-value");
             const personalitySelector = $("#personality-selector");
-            const selectedPersonality = personalitySelector.val();
             const resetButton = $("#reset-btn");
             const robotBtn = $("#robot-mode-button");
             const convers = [];
@@ -222,13 +221,16 @@
                 console.log("Robot mode button clicked"); // Debugging statement
                 if (isRobotModeActive) {
                     isRobotModeActive = false;
+                    robotBtn.css("background-color", ""); // Reset the button color
                     return;
                 }
                 isRobotModeActive = true;
+                robotBtn.css("background-color", "DarkRed"); // Change the button color to red
                 startRobotMode();
             });
 
             personalitySelector.on("change", () => {
+                const selectedPersonality = parseInt(personalitySelector.val());
                 $.ajax({
                     type: "POST",
                     url: "/update_personality",
@@ -318,7 +320,7 @@
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ conversation: userMessage, personality: selectedPersonality}),
+                    body: JSON.stringify({ conversation: userMessage}),
                 });
 
                 const data = await response.json();
@@ -364,8 +366,8 @@
                     submitButton.prop("disabled", true);
                     // Send user message to the server and get the response
 
-                    const textData = { conversation: userMessage, personality: selectedPersonality };
-                    console.log("Sending request:", userMessage, selectedPersonality);
+                    const textData = { conversation: userMessage};
+                    console.log("Sending request:", userMessage);
 
                     $.ajax({
                         type: "POST",

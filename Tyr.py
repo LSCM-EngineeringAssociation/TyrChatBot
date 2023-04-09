@@ -5,7 +5,6 @@ import io
 from dotenv import load_dotenv
 import requests
 import webbrowser
-import static.utils.embed as embed
 from typing import Union
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
@@ -13,8 +12,8 @@ import speech_recognition as sr
 from enum import IntEnum
 
 class Personality(IntEnum):
-    SAFE = 0
-    NORMAL = 1
+    NORMAL = 0
+    SAFE = 1
     HAPPY = 2
     SATIRICAL = 3
     HIGHLY_SATIRICAL = 4
@@ -39,8 +38,8 @@ with open("static/utils/prompts.json", "r") as f:
     data = json.load(f)
 
 messages = [
-    [{"role": "system", "content": data["Prompts"]["Safe"]}],
     [{"role": "system", "content": data["Prompts"]["Normal"]}],
+    [{"role": "system", "content": data["Prompts"]["Safe"]}],
     [{"role": "system", "content": data["Prompts"]["Happy"]}],
     [{"role": "system", "content": data["Prompts"]["Satirical"]}],
     [{"role": "system", "content": data["Prompts"]["Highly_Satirical"]}],
@@ -90,17 +89,6 @@ def parse_personality_change_command(user_message: str) -> Union[Personality, No
     else:
         return None    
 
-# Create function to handle "Robot Mode" button click for voice conversation
-def TyrChat(user_message):
-    global current_personality
-    new_personality = parse_personality_change_command(user_message)
-    if new_personality is not None:
-        current_personality = new_personality
-        return "Personality changed."
-    else:
-        chatbot_response = generate_response(user_message, current_personality)
-        return chatbot_response
-
 # ---------------  FLASK FUNCTIONS  ---------------
 @Tyr.route('/')
 def index():
@@ -109,31 +97,15 @@ def index():
 
 @Tyr.route('/ask', methods=['POST'])
 def ask():
-    # Get the selected personality from the request data
-    personality_text = str(request.get_json(force=True).get("personality", ""))
-    try:
-        current_personality = Personality(int(personality_text))
-    except ValueError:
-        # Set a default value if the input is not a valid integer
-        default_personality_value = 1
-        current_personality = Personality(default_personality_value)
+    global current_personality
     conversation = str(request.get_json(force=True).get("conversation", ""))
-    print("Received data:", conversation, current_personality)
+    print("Received data:", conversation, current_personality.name)
     # Call the appropriate function based on the selected personality
     reply = generate_response(conversation, current_personality)
 
     print("Generated response:", reply)
 
     return jsonify({'text': reply})
-
-@Tyr.route('/voice_chat', methods=['POST'])
-def voice_chat():
-    user_message = request.get_json(force=True).get("message", "")
-    if not user_message:
-        return jsonify({"status": "error", "text": "No message received"})
-
-    chatbot_response = TyrChat(user_message)
-    return jsonify({"status": "success", "text": chatbot_response})
 
 @Tyr.route('/update-api-key', methods=['POST'])
 def update_api_key():
@@ -147,9 +119,21 @@ def update_api_key():
 @Tyr.route('/update_temperature', methods=['POST'])
 def update_temperature():
     data = request.get_json()
-    new_temperature = float(data.get('temperature', 0.5))
+    new_temperature = float(data.get('temperature', 0.7))
     current_temperature = new_temperature
     return jsonify({'temperature': current_temperature})
+
+@Tyr.route('/update_personality', methods=['POST'])
+def update_personality():
+    global current_personality
+    try:
+        personality_number = int(request.json['personality'])
+        current_personality = Personality(personality_number)
+        print(current_personality.name)
+        return jsonify(personality=current_personality.name), 200
+    except ValueError:
+        print("Invalid personality number")
+        return jsonify(error="Invalid personality number"), 400
 
 @Tyr.route('/text_to_speech', methods=['POST'])
 def text_to_speech():
@@ -195,4 +179,4 @@ def text_to_speech():
     
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
-    Tyr.run()
+    Tyr.run(debug=True)
