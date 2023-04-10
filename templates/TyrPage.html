@@ -155,13 +155,13 @@
         <h2 id="ask-tyr">Ask Tyr</h2>
         <h4>Options</h4>
         <div class="mb-2">
-            <select class="form-select" id="personality-selector">
-                <option value="0">Normal</option>
+            <select class="form-select" id="personality-selector" onchange="sendPersonality(this.value)">
                 <option value="1">Safe</option>
-                <option value="2">Happy</option>
-                <option value="3">Satiric</option>
-                <option value="4">Highly Satirical</option>
-                <option value="5">Writing Helper</option>
+                <option value="2">Normal</option>
+                <option value="3">Happy</option>
+                <option value="4">Satiric</option>
+                <option value="5">Highly Satirical</option>
+                <option value="6">Joe Rogan</option>
             </select>
         </div>
         <div class="mb-2">
@@ -170,11 +170,7 @@
         </div>
         <button type="button" class="btn btn-secondary mb-2 w-100" id="reset-btn">Reset Chat</button>
         <button type="button" class="btn btn-secondary mb-2 w-100" id="api-key-btn">API KEY</button>
-        <button type="button" class="btn btn-secondary mb-2 w-100" id="robot-mode-button">Robot Mode</button>
-        <div>
-            <label for="volume-slider" class="form-label">Volume: <span id="volume-value">50</span>%</label>
-            <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.5" id="volume-slider">
-        </div>
+        <button type="button" class="btn btn-secondary mb-2 w-100">Robot Mode</button>
     </div>
     <div class="main-content" data-aos="fade-left" data-aos-duration="1000">
         <div class="container">
@@ -205,36 +201,21 @@
             const temperatureSlider = $("#temperature-slider");
             const temperatureValue = $("#temperature-value");
             const personalitySelector = $("#personality-selector");
-            const resetButton = $("#reset-btn");
-            const robotBtn = $("#robot-mode-button");
             const convers = [];
-            let isRobotModeActive = false;
-            let volumeSlider = $("#volume-slider");
-            let volumeValue = $("#volume-value");
+            const resetButton = $("#reset-btn");
 
             resetButton.click(() => {
                 // Clear the chat messages
                 chatMessages.empty();
             });
-            
-            robotBtn.click(() => {
-                console.log("Robot mode button clicked"); // Debugging statement
-                if (isRobotModeActive) {
-                    isRobotModeActive = false;
-                    robotBtn.css("background-color", ""); // Reset the button color
-                    return;
-                }
-                isRobotModeActive = true;
-                robotBtn.css("background-color", "DarkRed"); // Change the button color to red
-                startRobotMode();
-            });
 
             personalitySelector.on("change", () => {
-                const selectedPersonality = parseInt(personalitySelector.val());
+                const personality = personalitySelector.val();
+
                 $.ajax({
                     type: "POST",
                     url: "/update_personality",
-                    data: JSON.stringify({personality: selectedPersonality}),
+                    data: JSON.stringify({personality: personality}),
                     contentType: "application/json",
                     success: (data) => {
                         console.log("Personality updated:", data.personality);
@@ -257,95 +238,6 @@
                 });
             });
 
-            volumeSlider.on("input", () => {
-                let currentVolume = Math.round(volumeSlider.val() * 100);
-                volumeValue.text(currentVolume);
-            });
-
-            async function startRobotMode() {
-                console.log("Robot mode started"); // Debugging statement
-                while (isRobotModeActive) {
-                    try {
-                        console.log("Getting user input...");
-                        const userMessage = await getUserInput();
-                        console.log("User input received:", userMessage);
-                        if (!isRobotModeActive) {
-                            break;
-                        }
-                        const chatbotResponse = await getChatbotResponse(userMessage);
-                        if (!isRobotModeActive) {
-                            break;
-                        }
-                        await playChatbotResponse(chatbotResponse);
-                    } catch (error) {
-                        console.error('An error occurred during robot mode:', error);
-                        break;
-                    }
-                }
-            }
-            async function getUserInput() {
-                return new Promise((resolve, reject) => {
-                    console.log('Starting speech recognition...');
-                    const SpeechRecognition = window.speechRecognition || window.webkitSpeechRecognition;
-                    if (!SpeechRecognition) {
-                        reject(new Error('Speech recognition is not supported in this browser.'));
-                        console.log('Error: Speech recognition is not supported in this browser.');
-                        return;
-                    }
-                    const recognition = new SpeechRecognition();
-                    recognition.lang = 'en-US';
-                    recognition.interimResults = false;
-                    recognition.maxAlternatives = 1;
-                    recognition.continuous = true;
-                    recognition.onresult = (event) => {
-                        const transcript = event.results[0][0].transcript;
-                        console.log("Transcript:", transcript); // Debugging statement
-                        resolve(transcript);
-                    };
-                    recognition.onerror = (event) => {
-                        console.error('Speech recognition error:', event.error); // Debugging statement
-                        reject(new Error('Speech recognition error: ' + event.error));
-                    };
-                    recognition.onend = () => {
-                        if (!recognition.error) {
-                            console.error('Speech recognition ended without results.'); // Debugging statement
-                            reject(new Error('Speech recognition ended without results.'));
-                        }
-                    };
-                    recognition.start();
-                });
-            }
-
-            async function getChatbotResponse(userMessage) {
-                const response = await fetch('/ask', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ conversation: userMessage}),
-                });
-
-                const data = await response.json();
-                return data.text;
-            }
-            async function playChatbotResponse(chatbotResponse) {
-                return new Promise(async (resolve, reject) => {
-                    const response = await fetch('/text_to_speech', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: chatbotResponse}),
-                    });
-
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        const audio = new Audio(URL.createObjectURL(blob));
-                        audio.addEventListener('ended', resolve);
-                        audio.volume = volumeSlider.val();
-                        audio.play();
-                    } else {
-                        reject(new Error('Failed to generate speech'));
-                    }
-                });
-            }
-
             // Submit message and display response when the form is submitted
             messageForm.submit((event) => {
                 event.preventDefault();
@@ -365,9 +257,9 @@
                     // Disable submit button
                     submitButton.prop("disabled", true);
                     // Send user message to the server and get the response
-
-                    const textData = { conversation: userMessage};
-                    console.log("Sending request:", userMessage);
+                    const selectedPersonality = personalitySelector.val();
+                    const textData = { conversation: userMessage, personality: selectedPersonality };
+                    console.log("Sending request:", userMessage, selectedPersonality);
 
                     $.ajax({
                         type: "POST",
