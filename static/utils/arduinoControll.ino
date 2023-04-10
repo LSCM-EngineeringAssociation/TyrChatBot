@@ -3,7 +3,7 @@
 #define numOfValsRec 12
 #define digitsPerValRec 3
 
-Servo thumb, index, middle, ring, pinky, wrist, shoulder, arm, eyeUpDown, eyeLeftRight, neck, jaw;
+Servo thumb, index, middle, ring, pinky, wrist, shoulder, bicep, eyeUpDown, eyeLeftRight, neck, jaw;
 
 const int servoPins[numOfValsRec] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
 
@@ -27,7 +27,7 @@ void setup() {
       case 4: pinky = servo; break;
       case 5: wrist = servo; break;
       case 6: shoulder = servo; break;
-      case 7: arm = servo; break;
+      case 7: bicep = servo; break;
       case 8: eyeUpDown = servo; break;
       case 9: eyeLeftRight = servo; break;
       case 10: neck = servo; break;
@@ -69,7 +69,7 @@ void loop() {
   pinky.write(ValsRec[4]);
   wrist.write(ValsRec[5]);
   shoulder.write(ValsRec[6]);
-  arm.write(ValsRec[7]);
+  bicep.write(ValsRec[7]);
   eyeUpDown.write(ValsRec[8]);
   eyeLeftRight.write(ValsRec[9]);
   neck.write(ValsRec[10]);
