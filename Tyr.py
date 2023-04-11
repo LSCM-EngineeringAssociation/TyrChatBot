@@ -18,6 +18,7 @@ class Personality(IntEnum):
     SATIRICAL = 3
     HIGHLY_SATIRICAL = 4
     WRITING_HELPER = 5
+    JOE_ROGAN = 6
 
 # Load API keys
 load_dotenv()
@@ -59,14 +60,14 @@ def test_api_key(api_key):
 # Generate response with personality 1
 def generate_response(input: str, personality: Personality):
     if input:
-        for i in range(6):
+        for i in range(len(messages)):
             messages[i].append({"role": "user", "content": input})
 
         chat = openai.ChatCompletion.create(
             model="gpt-3.5-turbo", messages=messages[int(personality)], temperature=current_temperature
         )
         reply = chat.choices[0].message.content
-        for i in range(6):
+        for i in range(len(messages)):
             messages[i].append({"role": "assistant", "content": reply})
 
         return reply
@@ -86,6 +87,8 @@ def parse_personality_change_command(user_message: str) -> Union[Personality, No
         return Personality.HIGHLY_SATIRICAL
     elif "change to writing helper" in user_message_lower:
         return Personality.WRITING_HELPER
+    elif "change to joe rogan" in user_message_lower:
+        return Personality.JOE_ROGAN
     else:
         return None    
 
@@ -179,4 +182,4 @@ def text_to_speech():
     
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
-    Tyr.run(debug=True)
+    Tyr.run()
