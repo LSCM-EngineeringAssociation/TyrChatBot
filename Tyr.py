@@ -1,42 +1,50 @@
 import os
 import json
 import openai
-import pyttsx3
-import uuid
+import io
+from dotenv import load_dotenv
+import requests
 import webbrowser
+from typing import Union
+from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
 import speech_recognition as sr
-from enum import Enum
+from enum import IntEnum
 
-class Personality(Enum):
+class Personality(IntEnum):
+    NORMAL = 0
     SAFE = 1
-    NORMAL = 2
-    HAPPY = 3
-    SATIRICAL = 4
-    HIGHLY_SATIRICAL = 5
+    HAPPY = 2
+    SATIRICAL = 3
+    HIGHLY_SATIRICAL = 4
+    WRITING_HELPER = 5
 
-openai.api_key = "Enter api"
+# Load API keys
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+elabs_apikey = os.getenv("elabs_apikey")
+elabs_voiceID = os.getenv("elabs_voice")
 global current_temperature
 global current_personality
 
+#OpenAI Controls
 current_temperature = 0.7
 current_personality = Personality.NORMAL
 
 Tyr = Flask(__name__)
 
 # Set Tyr personality
-with open("prompts.json", "r") as f:
+with open("static/utils/prompts.json", "r") as f:
     data = json.load(f)
 
 messages = [
-    {"role": "system", "content": data["Prompts"]["Safe"]},
-    {"role": "system", "content": data["Prompts"]["Normal"]},
-    {"role": "system", "content": data["Prompts"]["Happy"]},
-    {"role": "system", "content": data["Prompts"]["Satirical"]},
-    {"role": "system", "content": data["Prompts"]["Highly_Satirical"]},
-    {"role": "system", "content": data["Prompts"]["Joe_Rogan"]}
+    [{"role": "system", "content": data["Prompts"]["Normal"]}],
+    [{"role": "system", "content": data["Prompts"]["Safe"]}],
+    [{"role": "system", "content": data["Prompts"]["Happy"]}],
+    [{"role": "system", "content": data["Prompts"]["Satirical"]}],
+    [{"role": "system", "content": data["Prompts"]["Highly_Satirical"]}],
+    [{"role": "system", "content": data["Prompts"]["WRITING_HELPER"]}]
 ]
-
 
 # Auhtenticate the API key
 def test_api_key(api_key):
@@ -48,7 +56,6 @@ def test_api_key(api_key):
     else:
         return True
 
-
 # Generate response with personality 1
 def generate_response(input: str, personality: Personality):
     if input:
@@ -56,89 +63,49 @@ def generate_response(input: str, personality: Personality):
             messages[i].append({"role": "user", "content": input})
 
         chat = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", messages=messages[current_personality], temperature=current_temperature
+            model="gpt-3.5-turbo", messages=messages[int(personality)], temperature=current_temperature
         )
-        reply = chat.choices[current_personality].message.content
+        reply = chat.choices[0].message.content
         for i in range(6):
             messages[i].append({"role": "assistant", "content": reply})
 
         return reply
 
-
-# Function that Listens to user using Whisper
-def transcribe_audio(filename: str) -> str:
-    with open(filename, "rb") as audio_file:
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
-    return transcript.text
-
-
-# Function that Listens to user locally using Google Speech Recognition
-def listen_to_user():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Say something!")
-        audio = r.listen(source)
-    try:
-        user_message = r.recognize_google(audio, language='en-US')
-        print("You: " + user_message)
-        return user_message
-    except sr.UnknownValueError:
-        print("Could not understand audio")
-        return None
-    except sr.RequestError as e:
-        print("Error requesting results; {0}".format(e))
-        return None
-
-
-# Create function to handle "Voice Ask" button click
-def TyrChat():
-    engine = pyttsx3.init()
-    while True:
-        user_message = listen_to_user()
-        if user_message is None:
-            continue
-        if user_message.lower() in ["quit", "bye", "exit"]:
-            print("Tyr: Goodbye!")
-            exit()
-        prompt = (f"{user_message}")
-        chatbot_response = generate_response(prompt)
-        engine.say(chatbot_response)
-        engine.runAndWait()
+#Sopaghetto function to parse personality change commands(I want to get this working but I have too much ADHD)
+def parse_personality_change_command(user_message: str) -> Union[Personality, None]:
+    user_message_lower = user_message.lower()
+    if "change to safe" in user_message_lower:
+        return Personality.SAFE
+    elif "change to normal" in user_message_lower:
+        return Personality.NORMAL
+    elif "change to happy" in user_message_lower:
+        return Personality.HAPPY
+    elif "change to satirical" in user_message_lower:
+        return Personality.SATIRICAL
+    elif "change to highly satirical" in user_message_lower:
+        return Personality.HIGHLY_SATIRICAL
+    elif "change to writing helper" in user_message_lower:
+        return Personality.WRITING_HELPER
+    else:
+        return None    
 
 # ---------------  FLASK FUNCTIONS  ---------------
 @Tyr.route('/')
 def index():
     # Render the index page.
-    return render_template('TyrPage.html', voices=Tyr)
-
-
-@Tyr.route('/transcribe', methods=['POST'])
-def transcribe():
-    # Transcribe the given audio to text using Whisper.
-    if 'file' not in request.files:
-        return 'No file found', 400
-    file = request.files['file']
-    recording_file = f"{uuid.uuid4()}.wav"
-    recording_path = f"uploads/{recording_file}"
-    os.makedirs(os.path.dirname(recording_path), exist_ok=True)
-    file.save(recording_path)
-    transcription = transcribe_audio(recording_path)
-    return jsonify({'text': transcription})
-
+    return render_template('TyrPage.html')
 
 @Tyr.route('/ask', methods=['POST'])
 def ask():
-    # Get the selected personality from the request data
-    personality_text = str(request.get_json(force=True).get("personality", ""))
-    current_personality = Personality(int(personality_text))
+    global current_personality
     conversation = str(request.get_json(force=True).get("conversation", ""))
-    print("Received data:", conversation, current_personality)
+    print("Received data:", conversation, current_personality.name)
     # Call the appropriate function based on the selected personality
     reply = generate_response(conversation, current_personality)
 
     print("Generated response:", reply)
-    return jsonify({'text': reply})
 
+    return jsonify({'text': reply})
 
 @Tyr.route('/update-api-key', methods=['POST'])
 def update_api_key():
@@ -149,21 +116,67 @@ def update_api_key():
     else:
         return jsonify({"status": "error"})
 
-
 @Tyr.route('/update_temperature', methods=['POST'])
 def update_temperature():
     data = request.get_json()
-    new_temperature = float(data.get('temperature', 0.5))
+    new_temperature = float(data.get('temperature', 0.7))
     current_temperature = new_temperature
     return jsonify({'temperature': current_temperature})
 
+@Tyr.route('/update_personality', methods=['POST'])
+def update_personality():
+    global current_personality
+    try:
+        personality_number = int(request.json['personality'])
+        current_personality = Personality(personality_number)
+        print(current_personality.name)
+        return jsonify(personality=current_personality.name), 200
+    except ValueError:
+        print("Invalid personality number")
+        return jsonify(error="Invalid personality number"), 400
 
-@Tyr.route('/listen/<filename>')
-def listen(filename):
-    # Return the audio file located at the given filename.
-    return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
+@Tyr.route('/text_to_speech', methods=['POST'])
+def text_to_speech():
+    ELABS_STAB = 0.70
+    ELABS_SIMIL = 0.75
+    try:
+        text = request.get_json(force=True).get("text","")
+        voice_id = elabs_voiceID # Replace with your desired voice ID
+        api_key = elabs_apikey # Replace with your Eleven Labs API key
+        headers = {
+            'accept': 'audio/mpeg',
+            'xi-api-key': api_key,
+            'Content-Type': 'application/json'
+        }
+        data = {
+            "text": text,
+            "voice_settings": {
+                "stability": ELABS_STAB,
+                "similarity_boost": ELABS_SIMIL
+            }
+        }
+        response = requests.post(
+            f'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}',
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            with open('temp_audio.mp3', 'wb') as f:
+                f.write(response.content)
 
+            with open('temp_audio.mp3', 'rb') as f:
+                audio_data = io.BytesIO(f.read())
+            os.remove('temp_audio.mp3')
 
+            return send_file(audio_data, mimetype='audio/mpeg', as_attachment=True, download_name='response.mp3')
+        else:
+            print(f"Error in text_to_speech: Eleven Labs API returned {response.status_code} - {response.text}")
+            return jsonify({"status": "error", "text": "Text-to-speech conversion failed"}), response.status_code
+    except Exception as e:
+        print(f"Error in text_to_speech: {e}")
+        print(request.get_json())
+        return jsonify({"error": str(e)}), 400
+    
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
-    Tyr.run()
+    Tyr.run(debug=True)
