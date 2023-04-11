@@ -16,4 +16,4 @@ Semantic Search:
   Use Langchain and Pinecone to semantically search a long document, this will give Tyr a large memory when it comes to clusters of Data.
 
 Robot Control:
-  General idea is to create a prompt for GPT-3.5 that will output a command to control arduino and its personality.
+  General idea is to create a prompt for GPT-3.5 that will output a command to control arduino or its personality.
