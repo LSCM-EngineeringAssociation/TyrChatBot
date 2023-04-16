@@ -31,7 +31,7 @@ class SemanticSearcherPDF():
         db = Chroma.from_documents(texts, embeddings, metadatas=[{"source": i} for i in range(len(texts))])
         return db
 
-    def ChatSemSearch(query, db, current_temperature):
+    def ChatSemSearch(query, db):
         if query:
             results = db.similarity_search(query)
             template = """You are a Bot assistant answering any questions about documents.
@@ -44,12 +44,12 @@ class SemanticSearcherPDF():
                 User:{human_input}
                 Tyr:"""
             prompt = PromptTemplate(
-                input_variables = ["chat_history", "query", "context"],
+                input_variables = ["chat_history", "human_input", "context"],
                 template = template
             )
             memory = ConversationBufferMemory(memory_key="chat_history", input_key="human_input")
             chain = load_qa_chain(OpenAI(temperature=0.5, model_name=ChatModel), chain_type="stuff", memory=memory, prompt=prompt)
-            chain({"input_documents": results, "human_input": query}, return_only_outputs=True)
+            chain({"context": results, "human_input": query}, return_only_outputs=True)
             return (chain.memory.buffer)
     
 class SemanticSearcherMP3():
