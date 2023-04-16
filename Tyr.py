@@ -5,11 +5,12 @@ import io
 from dotenv import load_dotenv
 import requests
 import webbrowser
-from typing import Union
 from werkzeug.utils import secure_filename
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, send_file, render_template, redirect, url_for
 import speech_recognition as sr
 from enum import IntEnum
+
+Tyr = Flask(__name__)
 
 class Personality(IntEnum):
     NORMAL = 0
@@ -32,10 +33,13 @@ global current_personality
 current_temperature = 0.7
 current_personality = Personality.NORMAL
 
-Tyr = Flask(__name__)
+# Upload controls
+UPLOAD_FOLDER = "uploads"
+ALLOWED_EXTENSIONS = {"mp3", "txt", "pdf"}
+Tyr.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # Set Tyr personality
-with open("static/utils/prompts.json", "r") as f:
+with open("static/prompts.json", "r") as f:
     data = json.load(f)
 
 messages = [
@@ -44,7 +48,8 @@ messages = [
     [{"role": "system", "content": data["Prompts"]["Happy"]}],
     [{"role": "system", "content": data["Prompts"]["Satirical"]}],
     [{"role": "system", "content": data["Prompts"]["Highly_Satirical"]}],
-    [{"role": "system", "content": data["Prompts"]["WRITING_HELPER"]}]
+    [{"role": "system", "content": data["Prompts"]["WRITING_HELPER"]}],
+    [{"role": "system", "content": data["Prompts"]["Joe_Rogan"]}]
 ]
 
 # Auhtenticate the API key
@@ -70,27 +75,10 @@ def generate_response(input: str, personality: Personality):
         for i in range(len(messages)):
             messages[i].append({"role": "assistant", "content": reply})
 
-        return reply
+        return reply   
 
-#Sopaghetto function to parse personality change commands(I want to get this working but I have too much ADHD)
-def parse_personality_change_command(user_message: str) -> Union[Personality, None]:
-    user_message_lower = user_message.lower()
-    if "change to safe" in user_message_lower:
-        return Personality.SAFE
-    elif "change to normal" in user_message_lower:
-        return Personality.NORMAL
-    elif "change to happy" in user_message_lower:
-        return Personality.HAPPY
-    elif "change to satirical" in user_message_lower:
-        return Personality.SATIRICAL
-    elif "change to highly satirical" in user_message_lower:
-        return Personality.HIGHLY_SATIRICAL
-    elif "change to writing helper" in user_message_lower:
-        return Personality.WRITING_HELPER
-    elif "change to joe rogan" in user_message_lower:
-        return Personality.JOE_ROGAN
-    else:
-        return None    
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ---------------  FLASK FUNCTIONS  ---------------
 @Tyr.route('/')
@@ -179,6 +167,22 @@ def text_to_speech():
         print(f"Error in text_to_speech: {e}")
         print(request.get_json())
         return jsonify({"error": str(e)}), 400
+    
+@Tyr.route("/upload", methods=["POST"])
+def upload_file():
+    if request.method == "POST":
+        if "file" not in request.files:
+            return "No file part", 400
+        file = request.files["file"]
+        if file.filename == "":
+            return "No file selected", 400
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(Tyr.config["UPLOAD_FOLDER"], filename))
+            # Add your own processing logic here
+            return "File uploaded and saved.", 200
+        else:
+            return "File type not allowed", 400
     
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
