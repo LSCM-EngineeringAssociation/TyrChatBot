@@ -13,7 +13,7 @@ from langchain.vectorstores.elastic_vector_search import ElasticVectorSearch
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain.retrievers.document_compressors import LLMChainFilter
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import Chroma, FAISS
 from langchain.chains import RetrievalQAWithSourcesChain, HypotheticalDocumentEmbedder, ConversationalRetrievalChain
 from dotenv import load_dotenv
 
@@ -55,18 +55,19 @@ async def transcribe_all_mp3_files(self, input_folder, output_folder):
 #embeddings_filter = EmbeddingsFilter(embeddings=base_embeddings, similarity_threshold=0.5)
 #vectors = ContextualCompressionRetriever(base_compressor=embeddings_filter, base_retriever=docsearch)
 def store_doc_embeds(file):
-    loader = PyPDFLoader(file)
-    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    pages = loader.load_and_split(text_splitter=splitter)
+    reader = PdfReader(file)
+    corpus = ''.join([p.extract_text() for p in reader.pages if p.extract_text()])
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    pages = splitter.split_text(corpus)
     base_embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
-    embeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, "web_search") #Doesnt work with embeddings filtering for some reason I don't understand
-    docsearch = Chroma.from_documents(documents=pages, embedding=embeddings)
+    #llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+    #embeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, "web_search") #Doesnt work with embeddings filtering for some reason I don't understand
+    docsearch = Chroma.from_texts(texts=pages, embedding=base_embeddings, metadatas=[{"source": f"{i}-pl"} for i in range(len(pages))])
     return docsearch
 
 def conversational_chat(retriever, query, history):
-    chat_openai = ChatOpenAI(model_name="gpt-3.5-turbo")
-    chain = RetrievalQAWithSourcesChain.from_chain_type(chat_openai, chain_type="refine", retriever=retriever.as_retriever())
+    chain = RetrievalQAWithSourcesChain.from_chain_type(ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.6), chain_type="refine", retriever=retriever.as_retriever(), return_source_documents=True)
+    #chain = ConversationalRetrievalChain.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo"), retriever=retriever, return_source_documents=True)
     result = chain({"question": query, "chat_history": history}, return_only_outputs=True)
     history.append((query, result["answer"]))
     return result["answer"]
