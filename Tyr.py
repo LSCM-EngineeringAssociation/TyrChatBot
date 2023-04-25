@@ -2,15 +2,17 @@ import os
 import json
 import openai
 import io
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 import requests
 import webbrowser
 from werkzeug.utils import secure_filename
-from flask import Flask, request, jsonify, send_file, render_template, redirect, url_for
-import speech_recognition as sr
+from flask import Flask, request, jsonify, send_file, render_template
+from .utils import sem_searcher
 from enum import IntEnum
 
 Tyr = Flask(__name__)
+Tyr.config['UPLOAD_FOLDER'] = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'mp3'}
 
 class Personality(IntEnum):
     NORMAL = 0
@@ -33,11 +35,6 @@ global current_personality
 current_temperature = 0.7
 current_personality = Personality.NORMAL
 
-# Upload controls
-UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"mp3", "txt", "pdf"}
-Tyr.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
 # Set Tyr personality
 with open("static/prompts.json", "r") as f:
     data = json.load(f)
@@ -53,14 +50,32 @@ messages = [
 ]
 
 # Auhtenticate the API key
-def test_api_key(api_key):
-    openai.api_key = api_key
-    test = openai.Completion.create(
-        engine="text-ada-001", prompt="test", max_tokens=5, n=1)
-    if 'Invalid API key' in str(test):
-        return False
-    else:
+def test_oai_key(api_key):
+    url = "https://api.openai.com/v1/engines"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
         return True
+    else:
+        return False
+    
+def test_elab_key(api_key):
+    url = "https://api.elevenlabs.io/v1/user"
+    headers = {
+        "accept": "application/json",
+        "xi-api-key": api_key
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return True
+    else:
+        return False
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Generate response with personality 1
 def generate_response(input: str, personality: Personality):
@@ -76,9 +91,6 @@ def generate_response(input: str, personality: Personality):
             messages[i].append({"role": "assistant", "content": reply})
 
         return reply   
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ---------------  FLASK FUNCTIONS  ---------------
 @Tyr.route('/')
@@ -98,11 +110,22 @@ def ask():
 
     return jsonify({'text': reply})
 
-@Tyr.route('/update-api-key', methods=['POST'])
-def update_api_key():
+@Tyr.route('/update-openai-api-key', methods=['POST'])
+def update_openai_api_key():
     new_key = request.get_json(force=True).get("api_key", "")
-    if new_key and test_api_key(new_key):
+    if new_key and test_oai_key(new_key):
         openai.api_key = new_key
+        set_key(".env", "OPENAI_API_KEY", new_key)
+        return jsonify({"status": "success"})
+    else:
+        return jsonify({"status": "error"})
+
+@Tyr.route('/update-elevenlabs-api-key', methods=['POST'])
+def update_elevenlabs_api_key():
+    new_key = request.get_json(force=True).get("api_key", "")
+    if new_key and test_elab_key(new_key):
+        os.environ["elabs_apikey"] = new_key
+        set_key(".env", "elabs_apikey", new_key)
         return jsonify({"status": "success"})
     else:
         return jsonify({"status": "error"})
@@ -167,22 +190,27 @@ def text_to_speech():
         print(f"Error in text_to_speech: {e}")
         print(request.get_json())
         return jsonify({"error": str(e)}), 400
-    
-@Tyr.route("/upload", methods=["POST"])
+
+@Tyr.route('/upload', methods=['POST'])
 def upload_file():
-    if request.method == "POST":
-        if "file" not in request.files:
-            return "No file part", 400
-        file = request.files["file"]
-        if file.filename == "":
-            return "No file selected", 400
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(Tyr.config["UPLOAD_FOLDER"], filename))
-            # Add your own processing logic here
-            return "File uploaded and saved.", 200
-        else:
-            return "File type not allowed", 400
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(Tyr.config['UPLOAD_FOLDER'], filename))
+
+        # Process the file (either mp3 or PDF) and initialize it for the chatbot
+        # TODO: Implement your processing and embedding logic here
+
+        return jsonify({"status": "success", "message": "File uploaded and initialized"}), 200
+
+    return jsonify({"error": "Invalid file format"}), 400
     
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')

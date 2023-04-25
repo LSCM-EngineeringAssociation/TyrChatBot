@@ -1,161 +1,26 @@
 <!DOCTYPE html>
-<html data-bs-theme="dark">
+<html lang="en">
 <head>
     <link rel="icon" href="/static/favicon.ico">
     <title>Ask Tyr</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
-    <style>
-        body {
-            display: flex;
-            min-height: 100vh;
-            flex-direction: column;
-            font-family: 'Roboto', sans-serif;
-        }
-
-        .sidebar {
-            width: 250px;
-            min-height: 100%;
-            position: fixed;
-            padding: 20px;
-            background-color: #333;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-        }
-
-        .sidebar .mb-2 {
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar h4 {
-            text-align: center;
-            margin-bottom: 10px;
-            color: #fff;
-        }
-
-        #ask-tyr {
-            color: #fff;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 28px;
-        }
-
-        .sidebar img {
-            height: 100px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            margin-bottom: 20px;
-        }
-
-        .sidebar h1 {
-            font-size: 24px;
-            text-align: center;
-            margin-bottom: 10px;
-            color: #fff;
-        }
-
-        .sidebar .form-select,
-        .sidebar .form-range,
-        .sidebar .form-label {
-            color: #fff;
-        }
-
-        .sidebar .btn {
-            margin-bottom: 0.5rem;
-        }
-
-        .last-button {
-            margin-top: auto;
-        }
-
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-            flex: 1;
-        }
-
-        .chat-messages {
-            height: 800px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
-        }
-
-        .message {
-            margin-bottom: 10px;
-        }
-
-        .user-message {
-            font-weight: bold;
-        }
-
-        .assistant-message {
-            font-weight: bold;
-        }
-        .code-container {
-        background-color: #f8f8f8;
-        border: 1px solid #cccccc;
-        border-radius: 5px;
-        padding: 10px;
-        white-space: pre-wrap;
-        position: relative;
-        margin-bottom: 10px;
-        text-align: left;
-        }
-
-        h4 {
-            text-align: center;
-        }
-
-        .container {
-            padding: 0;
-        }
-
-        /* Additional styles */
-        body {
-            background-color: #f3f3f3;
-        }
-
-        .sidebar {
-            background-color: #343a40;
-        }
-
-        .main-content {
-            background-color: #fff;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateX(-3px);
-        }
-    </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/typeit@7.0.4/dist/typeit.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 </head>
-<body>
-    <div class="sidebar">
-        <img class="mb-3 animate__animated animate__fadeInDown" src="/static/GOD_CHIBI.png" alt="" style="height: 100px; display: block; margin-left: auto; margin-right: auto;">
-        <h2 id="ask-tyr">Ask Tyr</h2>
-        <h4>Options</h4>
+<body class="bg-gray-200 font-sans min-h-screen flex flex-col">
+    <div class="bg-gray-800 w-64 h-screen fixed p-5 flex flex-col">
+        <img class="mb-3 animate__animated animate__fadeInDown mx-auto h-24" src="/static/GOD_CHIBI.png" alt="">
+        <h2 class="text-white text-center text-2xl mb-5">Ask Tyr</h2>
+        <h4 class="text-white text-center text-lg mb-2">Options</h4>
         <div class="mb-2">
-            <select class="form-select" id="personality-selector">
+            <label for="personality-selector" class="form-label text-white">Personality:</label>
+            <select class="form-select text-gray-800 w-full p-2 rounded" id="personality-selector">
                 <option value="0">Normal</option>
                 <option value="1">Safe</option>
                 <option value="2">Happy</option>
@@ -166,28 +31,37 @@
             </select>
         </div>
         <div class="mb-2">
-            <label for="temperature-slider" class="form-label">Temperature: <span id="temperature-value">0.7</span></label>
+            <label for="temperature-slider" class="form-label text-white">Temperature: <span id="temperature-value">0.7</span></label>
             <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.7" id="temperature-slider">
         </div>
-        <button type="button" class="btn btn-secondary mb-2 w-100" id="reset-btn">Reset Chat</button>
-        <button type="button" class="btn btn-secondary mb-2 w-100" id="api-key-btn">API KEY</button>
-        <button type="button" class="btn btn-secondary mb-2 w-100" id="robot-mode-button">Robot Mode</button>
+        <button type="button" class="btn btn-secondary mb-2 w-full p-2 bg-gray-600 text-white rounded" id="reset-btn">Reset Chat</button>
+        <button type="button" class="btn btn-secondary mb-2 w-full p-2 bg-gray-600 text-white rounded" id="api-key-btn">Config</button>
+        <button type="button" class="btn btn-secondary mb-2 w-full p-2 bg-gray-600 text-white rounded" id="robot-mode-button">Robot Mode</button>
+        <div class="mb-2">
+            <div class="mb-2">
+                <label for="file-upload" class="form-label text-white">Upload a file:</label>
+                <input type="file" class="hidden" id="file-upload" accept=".pdf, .mp3">
+                <button type="button" class="btn btn-secondary w-full p-2 bg-gray-600 text-white rounded" id="upload-btn">Upload</button>
+                <div id="drop-zone" class="border-dashed border-2 border-gray-400 mt-2 p-2 text-center text-gray-400">Drag and drop a file here</div>
+                <div id="file-error" class="text-red-500 mt-2 hidden"></div>
+            </div>
+        </div>
         <div>
-            <label for="volume-slider" class="form-label">Volume: <span id="volume-value">50</span>%</label>
+            <label for="volume-slider" class="form-label text-white">Volume: <span id="volume-value">50</span>%</label>
             <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.5" id="volume-slider">
         </div>
     </div>
-    <div class="main-content" data-aos="fade-left" data-aos-duration="1000">
-        <div class="container">
+    <div class="main-content ml-64 p-10 flex-1" data-aos="fade-left" data-aos-duration="1000">
+        <div class="container mx-auto">
             <div class="row">
                 <div class="col-12">
-                    <div class="chat-messages" id="chat-messages">
+                    <div class="chat-messages border border-gray-300 rounded p-4 h-96 overflow-y-auto mb-4" id="chat-messages">
                         <!-- Chat messages will be appended here. -->
                     </div>
                     <form id="message-form">
-                        <div class="input-group mb-3">
-                            <input type="text" id="message-input" class="form-control" placeholder="Type your message" aria-label="Type your message" aria-describedby="submit-button">
-                            <button type="submit" class="btn btn-primary" id="submit-button">Submit</button>
+                        <div class="input-group mb-3 flex">
+                            <input type="text" id="message-input" class="form-control flex-grow bg-gray-200 p-2 rounded-l" placeholder="Type your message" aria-label="Type your message" aria-describedby="submit-button">
+                            <button type="submit" class="btn btn-primary bg-blue-600 text-white p-2 rounded-r" id="submit-button">Submit</button>
                         </div>
                     </form>
                 </div>
@@ -208,10 +82,83 @@
             const personalitySelector = $("#personality-selector");
             const resetButton = $("#reset-btn");
             const robotBtn = $("#robot-mode-button");
+            const uploadbtn = $("#upload-btn");
+            const file = $("#file-upload");
+            const fileError = $("#file-error");
+            const dropZone = $("#drop-zone");
             const convers = [];
             let isRobotModeActive = false;
             let volumeSlider = $("#volume-slider");
             let volumeValue = $("#volume-value");
+
+            uploadbtn.click(() => {
+                file.click();
+            });
+
+            file.change((event) => {
+                const selectedFile = event.target.files[0];
+                const allowedTypes = ['application/pdf', 'audio/mp3', 'audio/mpeg'];
+
+                fileError.addClass('hidden');
+
+                if (!allowedTypes.includes(selectedFile.type)) {
+                    fileError.text('Invalid file type. Please select a PDF or MP3 file.');
+                    fileError.removeClass('hidden');
+                    event.target.value = ''; // Reset the file input value
+                } else {
+                    // Process the file, if it's a valid type
+                    const formData = new FormData();
+                    formData.append('file', selectedFile);
+
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update the personality dropdown with the new personality
+                            // ... your code to update the personality dropdown
+                        } else {
+                            fileError.text(data.error);
+                            fileError.removeClass('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error during file upload:', error);
+                        fileError.text('An error occurred during file upload.');
+                        fileError.removeClass('hidden');
+                    });
+                }
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.on(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
+            });
+
+            // Add visual feedback for drag events
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.on(eventName, () => dropZone.addClass('bg-gray-500'));
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.on(eventName, () => dropZone.removeClass('bg-gray-500'));
+            });
+
+            // Handle dropped files
+            dropZone.on('drop', (event) => {
+                const droppedFiles = event.originalEvent.dataTransfer.files;
+                if (droppedFiles.length === 1) {
+                    file[0].files = droppedFiles; // Set the dropped file to the file input element
+                    file.trigger('change'); // Trigger the change event
+                } else {
+                    fileError.text('Please drop only one file at a time.');
+                    fileError.removeClass('hidden');
+                }
+            });
 
             resetButton.click(() => {
                 // Clear the chat messages
@@ -257,7 +204,6 @@
                     },
                 });
             });
-
             volumeSlider.on("input", () => {
                 let currentVolume = Math.round(volumeSlider.val() * 100);
                 volumeValue.text(currentVolume);
@@ -269,6 +215,7 @@
                     try {
                         console.log("Getting user input...");
                         const userMessage = await getUserInput();
+                        chatMessages.append(`<div class="message user-message">You: ${userMessage}</div>`);
                         console.log("User input received:", userMessage);
                         if (!isRobotModeActive) {
                             break;
@@ -323,8 +270,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ conversation: userMessage}),
                 });
-
                 const data = await response.json();
+                // Create a new div element for the assistant's response
+                let assistantMessage = data.text;
+                const assistantResponseDiv = $('<div class="message assistant-message"></div>');
+                chatMessages.append(assistantResponseDiv);                           
+                // Type the assistant's response using TypeIt
+                new TypeIt(assistantResponseDiv[0], {
+                    strings: `Tyr: ${assistantMessage}`,
+                    speed: 10,
+                    waitUntilVisible: false,
+                    cursor: false,
+                    html: true,
+                }).go();
+                // Scroll to the bottom of the chat box after typing is completed
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                // Re-enable submit button
+                submitButton.prop("disabled", false);
+                // Return the assistant's response
                 return data.text;
             }
             async function playChatbotResponse(chatbotResponse) {
@@ -334,7 +297,6 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ text: chatbotResponse}),
                     });
-
                     if (response.ok) {
                         const blob = await response.blob();
                         const audio = new Audio(URL.createObjectURL(blob));
@@ -394,7 +356,6 @@
                                         assistantMessage = assistantMessage.replace(codeBlock, codeContainer);
                                 });
                             }
-                            
                             // Create a new div element for the assistant's response
                             const assistantResponseDiv = $('<div class="message assistant-message"></div>');
                             chatMessages.append(assistantResponseDiv);
@@ -418,25 +379,105 @@
         });
 
         $("#api-key-btn").click(() => {
-            const newApiKey = prompt("Enter your API key:");
-            if (newApiKey) {
-                $.ajax({
-                    type: "POST",
-                    url: "/update-api-key",
-                    data: JSON.stringify({ api_key: newApiKey }),
-                    contentType: "application/json",
-                    success: (data) => {
-                        if (data.status === "success") {
-                            alert("API key updated successfully!");
-                        } else {
-                            alert("Error: Invalid API key.");
-                        }
+            // Create a modal
+            const modal = $(`
+            <div class="fixed z-10 inset-0 overflow-y-auto">
+                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+                    <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all">
+                    <div class="bg-white px-4 pt-5 pb-4">
+                        <div class="mb-3">
+                        <label for="api-key" class="block text-sm font-medium text-gray-700">OpenAI API key:</label>
+                        <input id="api-key" type="text" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <button id="submit-openai-api-key" class="mt-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply</button>
+                        <p id="success-message-openai" class="mt-2 text-sm text-green-600 hidden">OpenAI API key updated successfully!</p>
+                        <p id="error-message-openai" class="mt-2 text-sm text-red-600 hidden">Invalid OpenAI API key. Please try again.</p>
+                        </div>
+                        <div class="mb-3">
+                        <label for="elevan-api-key" class="block text-sm font-medium text-gray-700">Eleven Labs API key:</label>
+                        <input id="elevan-api-key" type="text" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <button id="submit-elevenlabs-api-key" class="mt-1 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply</button>
+                        <p id="success-message-elevenlabs" class="mt-2 text-sm text-green-600 hidden">Eleven Labs API key updated successfully!</p>
+                        <p id="error-message-elevenlabs" class="mt-2 text-sm text-red-600 hidden">Invalid Eleven Labs API key. Please try again.</p>
+                        </div>
+                        <div class="flex justify-end">
+                        <button id="cancel-api-key" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Done</button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            `);
+            $("body").append(modal);
+
+            async function updateApiKey(apiKey, updateUrl, errorMessage) {
+                const response = await fetch(updateUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
                     },
-                    error: () => {
-                        alert("Error with API key.");
-                    },
+                    body: JSON.stringify({ api_key: apiKey }),
                 });
+
+                if (response.ok) {
+                    errorMessage.addClass("hidden");
+                    alert("API key updated successfully!");
+                } else {
+                    errorMessage.removeClass("hidden");
+                }
             }
+            $("#submit-openai-api-key").click(() => {
+                const newApiKey = $("#api-key").val();
+                if (newApiKey) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/update-openai-api-key",
+                        data: JSON.stringify({ api_key: newApiKey }),
+                        contentType: "application/json",
+                        success: (data) => {
+                            if (data.status === "success") {
+                                $("#success-message-openai").removeClass("hidden");
+                            } else {
+                                $("#error-message-openai").removeClass("hidden");
+                            }
+                        },
+                        error: () => {
+                            $("#error-message-openai").removeClass("hidden");
+                        },
+                    });
+                } else {
+                    $("#error-message-openai").removeClass("hidden");
+                }
+            });
+
+            $("#submit-elevenlabs-api-key").click(() => {
+                const newElevanApiKey = $("#elevan-api-key").val();
+                if (newElevanApiKey) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/update-elevenlabs-api-key",
+                        data: JSON.stringify({ api_key: newElevanApiKey }),
+                        contentType: "application/json",
+                        success: (data) => {
+                            if (data.status === "success") {
+                                $("#success-message-elevenlabs").removeClass("hidden");
+                            } else {
+                                $("#error-message-elevenlabs").removeClass("hidden");
+                            }
+                        },
+                        error: () => {
+                            $("#error-message-elevenlabs").removeClass("hidden");
+                        },
+                    });
+                } else {
+                    $("#error-message-elevenlabs").removeClass("hidden");
+                }
+            });
+            $("#cancel-api-key").click(() => {
+                modal.remove(); // Remove the modal
+            });
         });
     </script>
 </body>
