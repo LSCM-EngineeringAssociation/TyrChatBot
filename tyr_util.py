@@ -61,7 +61,7 @@ def store_doc_embeds(file):
     base_embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
     embeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, "web_search") #Doesnt work with embeddings filtering for some reason I don't understand
-    docsearch = Chroma.from_documents(documents=pages, embedding=embeddings , metadatas=[{"source": f"{i}-pl"} for i in range(len(pages))])
+    docsearch = Chroma.from_documents(documents=pages, embedding=embeddings)
     return docsearch
 
 def conversational_chat(retriever, query, history):
