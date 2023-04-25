@@ -53,7 +53,7 @@ async def transcribe_all_mp3_files(self, input_folder, output_folder):
 
 # PDF PROCESSING
 
-def store_doc_embeds(file):
+async def store_doc_embeds(file):
     loader = PyPDFLoader(file)
     splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
     pages = loader.load_and_split(text_splitter=splitter)
@@ -73,7 +73,7 @@ def conversational_chat(retriever, query, history):
     history.append((query, result["answer"]))
     return result["answer"]
 
-def main():
+""" def main():
     inpath = "static/data/Capitulo_3_20150928.pdf"
     history = []
     retriever = store_doc_embeds(inpath)  # Compute retriever only once
@@ -85,4 +85,4 @@ def main():
         print(f"Answer: {answer}\n")
 
 if __name__ == "__main__":
-    main()
+    main() """

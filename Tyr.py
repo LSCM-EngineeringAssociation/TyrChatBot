@@ -7,7 +7,7 @@ import requests
 import webbrowser
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
-from .utils import sem_searcher
+import tyr_util
 from enum import IntEnum
 
 Tyr = Flask(__name__)
