@@ -87,6 +87,7 @@
             const fileError = $("#file-error");
             const dropZone = $("#drop-zone");
             const convers = [];
+            let pdfUploaded = false;
             let isRobotModeActive = false;
             let volumeSlider = $("#volume-slider");
             let volumeValue = $("#volume-value");
@@ -106,32 +107,28 @@
                     fileError.removeClass('hidden');
                     event.target.value = ''; // Reset the file input value
                 } else {
-                    // Process the file, if it's a valid type
                     const formData = new FormData();
                     formData.append('file', selectedFile);
-
-                    fetch('/upload', {
+                    fetch('/process_file', {
                         method: 'POST',
                         body: formData,
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Update the personality dropdown with the new personality
-                            // ... your code to update the personality dropdown
+                            pdfUploaded = true; // Set pdfUploaded to true
                         } else {
                             fileError.text(data.error);
                             fileError.removeClass('hidden');
                         }
                     })
                     .catch(error => {
-                        console.error('Error during file upload:', error);
-                        fileError.text('An error occurred during file upload.');
+                        console.error('Error during file processing:', error);
+                        fileError.text('An error occurred during file processing.');
                         fileError.removeClass('hidden');
                     });
                 }
             });
-
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropZone.on(eventName, (event) => {
                     event.preventDefault();
@@ -309,75 +306,83 @@
                 });
             }
 
-            // Submit message and display response when the form is submitted
             messageForm.submit((event) => {
                 event.preventDefault();
 
-                // Get user message
                 const userMessage = messageInput.val().trim();
 
-                // Check if message is not empty
                 if (userMessage) {
-                    // Add user message to chat box and clear input
                     chatMessages.append(`<div class="message user-message">You: ${userMessage}</div>`);
                     messageInput.val("");
 
-                    // Scroll to the bottom of the chat box
                     chatMessages.scrollTop(chatMessages[0].scrollHeight);
 
-                    // Disable submit button
                     submitButton.prop("disabled", true);
-                    // Send user message to the server and get the response
 
-                    const textData = { conversation: userMessage};
                     console.log("Sending request:", userMessage);
 
-                    $.ajax({
-                        type: "POST",
-                        url: "/ask",
-                        data: JSON.stringify(textData),
-                        contentType: "application/json",
-                        success: (data) => {
-                            // Check if the response contains a code block.
-                            const codeBlockRegex = /`{3}(.*?)`{3}/gs;
-                            const codeBlockMatch = data.text.match(codeBlockRegex);
-                            convers.push({ role: "Tyr:", content: data.text });
-                            let assistantMessage = data.text;
-                            if (codeBlockMatch) {
-                                codeBlockMatch.forEach((codeBlock) => {
-                                    // Extract the code and create an HTML element
-                                    const code = codeBlock.substring(3, codeBlock.length - 3);
-                                    const codeContainer = `
-                                        <div class="code-container">
-                                            <pre><code>${code}</code></pre>
-                                        </div>`;
+                    const handleAssistantMessage = (data) => {
+                        if (!data || !data.text) {
+                            console.error('Invalid data received:', data);
+                            return;
+                        }
+                        const codeBlockRegex = /`{3}(.*?)`{3}/gs;
+                        const codeBlockMatch = data.text.match(codeBlockRegex);
+                        convers.push({ role: "Tyr:", content: data.text });
+                        let assistantMessage = data.text;
 
-                                        // Replace the code block with the new HTML element.
-                                        assistantMessage = assistantMessage.replace(codeBlock, codeContainer);
-                                });
-                            }
-                            // Create a new div element for the assistant's response
-                            const assistantResponseDiv = $('<div class="message assistant-message"></div>');
-                            chatMessages.append(assistantResponseDiv);
-                            
-                            // Type the assistant's response using TypeIt
-                            new TypeIt(assistantResponseDiv[0], {
-                                strings: `Tyr: ${assistantMessage}`,
-                                speed: 10,
-                                waitUntilVisible: false,
-                                cursor: false,
-                                html: true,
-                            }).go();
-                            // Scroll to the bottom of the chat box after typing is completed
-                            chatMessages.scrollTop(chatMessages[0].scrollHeight);
-                            // Re-enable submit button
-                            submitButton.prop("disabled", false);
-                        },
-                    });
+                        if (codeBlockMatch) {
+                            codeBlockMatch.forEach((codeBlock) => {
+                                const code = codeBlock.substring(3, codeBlock.length - 3);
+                                const codeContainer = `
+                                    <div class="code-container">
+                                        <pre><code>${code}</code></pre>
+                                    </div>`;
+                                assistantMessage = assistantMessage.replace(codeBlock, codeContainer);
+                            });
+                        }
+
+                        const assistantResponseDiv = $('<div class="message assistant-message"></div>');
+                        chatMessages.append(assistantResponseDiv);
+
+                        new TypeIt(assistantResponseDiv[0], {
+                            strings: `Tyr: ${assistantMessage}`,
+                            speed: 10,
+                            waitUntilVisible: false,
+                            cursor: false,
+                            html: true,
+                        }).go();
+
+                        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                        submitButton.prop("disabled", false);
+                    };
+                    if (pdfUploaded==false) {
+                        const textData = { conversation: userMessage };
+                        $.ajax({
+                            type: "POST",
+                            url: "/ask",
+                            data: JSON.stringify(textData),
+                            contentType: "application/json",
+                            success: (data) => {
+                                handleAssistantMessage(data);
+                            },
+                        });
+                    } else {
+                        const textData = {conversation: userMessage};
+                        $.ajax({
+                            type: "POST",
+                            url: "/get_answer",
+                            data: JSON.stringify(textData),
+                            contentType: "application/json",
+                            method: 'POST',
+                            success: (data) => {
+                                handleAssistantMessage(data);
+                            },
+                        });
+                    }
                 }
             });
         });
-
         $("#api-key-btn").click(() => {
             // Create a modal
             const modal = $(`

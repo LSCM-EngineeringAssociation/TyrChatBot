@@ -52,19 +52,17 @@ async def transcribe_all_mp3_files(self, input_folder, output_folder):
             print(f"Transcription complete for {input_file}.")
 
 # PDF PROCESSING
-
-async def store_doc_embeds(file):
+#embeddings_filter = EmbeddingsFilter(embeddings=base_embeddings, similarity_threshold=0.5)
+#vectors = ContextualCompressionRetriever(base_compressor=embeddings_filter, base_retriever=docsearch)
+def store_doc_embeds(file):
     loader = PyPDFLoader(file)
     splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
     pages = loader.load_and_split(text_splitter=splitter)
     base_embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
     embeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, "web_search") #Doesnt work with embeddings filtering for some reason I don't understand
-    #embeddings_filter = EmbeddingsFilter(embeddings=base_embeddings, similarity_threshold=0.5)
     docsearch = Chroma.from_documents(documents=pages, embedding=embeddings , metadatas=[{"source": f"{i}-pl"} for i in range(len(pages))])
-    #vectors = ContextualCompressionRetriever(base_compressor=embeddings_filter, base_retriever=docsearch)
     return docsearch
-
 
 def conversational_chat(retriever, query, history):
     chat_openai = ChatOpenAI(model_name="gpt-3.5-turbo")
@@ -72,17 +70,3 @@ def conversational_chat(retriever, query, history):
     result = chain({"question": query, "chat_history": history}, return_only_outputs=True)
     history.append((query, result["answer"]))
     return result["answer"]
-
-""" def main():
-    inpath = "static/data/Capitulo_3_20150928.pdf"
-    history = []
-    retriever = store_doc_embeds(inpath)  # Compute retriever only once
-    while True:
-        query = input("Enter your query (type 'exit' to quit): ")
-        if query.lower() == 'exit':
-            break
-        answer = conversational_chat(retriever, query, history)  # Pass the retriever as an argument
-        print(f"Answer: {answer}\n")
-
-if __name__ == "__main__":
-    main() """

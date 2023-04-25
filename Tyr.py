@@ -7,11 +7,11 @@ import requests
 import webbrowser
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
-import tyr_util
+import tyr_util as tyr
 from enum import IntEnum
 
 Tyr = Flask(__name__)
-Tyr.config['UPLOAD_FOLDER'] = 'uploads'
+Tyr.config['UPLOAD_FOLDER'] = 'static/data'
 ALLOWED_EXTENSIONS = {'pdf', 'mp3'}
 
 class Personality(IntEnum):
@@ -30,10 +30,12 @@ elabs_apikey = os.getenv("elabs_apikey")
 elabs_voiceID = os.getenv("elabs_voice")
 global current_temperature
 global current_personality
+global file_embeddings
 
 #OpenAI Controls
 current_temperature = 0.7
 current_personality = Personality.NORMAL
+file_embeddings = None
 
 # Set Tyr personality
 with open("static/prompts.json", "r") as f:
@@ -191,27 +193,30 @@ def text_to_speech():
         print(request.get_json())
         return jsonify({"error": str(e)}), 400
 
-@Tyr.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+@Tyr.route('/process_file', methods=['POST'])
+def process_file():
+    global file_embeddings
+    file = request.files.get('file')
+    # Save the file to the /static/data folder
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(Tyr.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    # Process the file using store_doc_embeds function
+    file_embeddings = tyr.store_doc_embeds(filepath)
+    print("done")
+    return jsonify(success=True)
 
-    file = request.files['file']
+@Tyr.route('/get_answer', methods=['POST'])
+def get_answer():
+    global file_embeddings
+    query = str(request.get_json(force=True).get("conversation", ""))
+    history = []
+    if file_embeddings:
+        answer = tyr.conversational_chat(file_embeddings, query, history)
+        return jsonify({'text': answer})
+    else:
+        return jsonify(error='No file has been processed yet.')
 
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(Tyr.config['UPLOAD_FOLDER'], filename))
-
-        # Process the file (either mp3 or PDF) and initialize it for the chatbot
-        # TODO: Implement your processing and embedding logic here
-
-        return jsonify({"status": "success", "message": "File uploaded and initialized"}), 200
-
-    return jsonify({"error": "Invalid file format"}), 400
-    
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
     Tyr.run()
