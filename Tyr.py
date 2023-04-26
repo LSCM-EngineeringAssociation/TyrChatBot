@@ -2,6 +2,17 @@ import os
 import json
 import openai
 import io
+import traceback
+import threading
+import serial
+from threading import Thread
+from serial import Serial, SerialException
+from serial.tools import list_ports
+from time import sleep
+import numpy as np
+import pygame
+from pydub import AudioSegment
+from pydub.utils import mediainfo
 from dotenv import load_dotenv, set_key
 import requests
 import webbrowser
@@ -10,6 +21,7 @@ from flask import Flask, request, jsonify, send_file, render_template
 import tyr_util as tyr
 from enum import IntEnum
 
+# Flask Controls
 Tyr = Flask(__name__)
 Tyr.config['UPLOAD_FOLDER'] = 'static/data'
 ALLOWED_EXTENSIONS = {'pdf', 'mp3'}
@@ -19,7 +31,7 @@ class Personality(IntEnum):
     SAFE = 1
     HAPPY = 2
     SATIRICAL = 3
-    HIGHLY_SATIRICAL = 4
+    Dan = 4
     WRITING_HELPER = 5
     JOE_ROGAN = 6
 
@@ -32,13 +44,59 @@ global current_temperature
 global current_personality
 global file_embeddings
 
-#OpenAI Controls
+# OpenAI Controls
 current_temperature = 0.7
 current_personality = Personality.NORMAL
 file_embeddings = None
 
+# Arduino Controls
+# Set up the serial connection with your Arduino
+""" def find_and_connect_serial():
+    for com_port in list_ports.comports():
+        try:
+            ser = Serial(com_port.device, 9600)
+            print(f"Connected to {com_port.device}")
+            return ser
+        except SerialException:
+            pass
+            print("Error: COM port not found.") """
+
+arduino_serial = serial.Serial('COM6', 9600)
+
+# ---------------  ARDUINO FUNCTIONS  ---------------
+def map_amplitude_to_angle(amplitude, min_angle, max_angle):
+    min_amplitude = 0
+    max_amplitude = 32767
+    angle = (amplitude - min_amplitude) * (max_angle - min_angle) / (max_amplitude - min_amplitude) + min_angle
+    return int(angle)
+
+def process_audio(audio_file, duration, arduino_serial):
+    CHUNK_SIZE_MS = 10  # The size of each chunk in milliseconds
+    MIN_ANGLE = 0  # The minimum angle for the jaw servo
+    MAX_ANGLE = 180  # The maximum angle for the jaw servo
+
+    audio = AudioSegment.from_file(audio_file, format='mp3')
+
+    for i in range(0, duration, CHUNK_SIZE_MS):
+        chunk = audio[i:i + CHUNK_SIZE_MS]
+        amplitude = np.mean(np.abs(np.frombuffer(chunk.raw_data, np.int16)))
+        angle = map_amplitude_to_angle(amplitude, MIN_ANGLE, MAX_ANGLE)
+
+        # Send the angle to the Arduino
+        arduino_serial.write(str(angle).encode() + b'\n')
+        sleep(CHUNK_SIZE_MS / 1000)
+
+def play_audio_file(audio_file):
+    pygame.mixer.init()
+    pygame.mixer.music.load(audio_file)
+    pygame.mixer.music.play()
+
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+
+# ---------------  OPENAI FUNCTIONS  ---------------
 # Set Tyr personality
-with open("static/prompts.json", "r") as f:
+with open("static/prompts.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
 messages = [
@@ -46,7 +104,7 @@ messages = [
     [{"role": "system", "content": data["Prompts"]["Safe"]}],
     [{"role": "system", "content": data["Prompts"]["Happy"]}],
     [{"role": "system", "content": data["Prompts"]["Satirical"]}],
-    [{"role": "system", "content": data["Prompts"]["Highly_Satirical"]}],
+    [{"role": "system", "content": data["Prompts"]["Dan"]}],
     [{"role": "system", "content": data["Prompts"]["WRITING_HELPER"]}],
     [{"role": "system", "content": data["Prompts"]["Joe_Rogan"]}]
 ]
@@ -111,6 +169,31 @@ def ask():
     print("Generated response:", reply)
 
     return jsonify({'text': reply})
+
+@Tyr.route('/process_file', methods=['POST'])
+def process_file():
+    global file_embeddings
+    file = request.files.get('file')
+    # Save the file to the /static/data folder
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(Tyr.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    # Process the file using store_doc_embeds function
+    file_embeddings = tyr.getDocEmbeds(filepath)
+    print("done")
+    return jsonify(success=True)
+
+@Tyr.route('/get_answer', methods=['POST'])
+def get_answer():
+    global file_embeddings
+    query = str(request.get_json(force=True).get("conversation", ""))
+    history = []
+    if file_embeddings:
+        answer = tyr.conversational_chat(file_embeddings, query, history)
+        history.append(query, answer)
+        return jsonify({'text': answer})
+    else:
+        return jsonify(error='No file has been processed yet.')
 
 @Tyr.route('/update-openai-api-key', methods=['POST'])
 def update_openai_api_key():
@@ -180,42 +263,34 @@ def text_to_speech():
             with open('temp_audio.mp3', 'wb') as f:
                 f.write(response.content)
 
-            with open('temp_audio.mp3', 'rb') as f:
-                audio_data = io.BytesIO(f.read())
-            os.remove('temp_audio.mp3')
+            audio_data = 'temp_audio.mp3'
 
-            return send_file(audio_data, mimetype='audio/mpeg', as_attachment=True, download_name='response.mp3')
+            # Get the duration of the audio file
+            audio = AudioSegment.from_file(audio_data, format='mp3')
+            duration = int(len(audio) / 1000)
+
+            play_audio_thread = threading.Thread(target=play_audio_file, args=(audio_data,))
+            process_audio_thread = threading.Thread(target=process_audio, args=(audio_data, duration, arduino_serial))
+            try:
+                # Create a thread to play the audio
+                play_audio_thread.start()
+                # Create a thread to send jaw movement commands to the Arduino
+                process_audio_thread.start()
+                # Wait for both threads to finish
+                play_audio_thread.join()
+                process_audio_thread.join()
+            finally: 
+                #os.remove('temp_audio.mp3')
+                return send_file(audio_data, mimetype='audio/mpeg', as_attachment=True, download_name='response.mp3')
+
         else:
             print(f"Error in text_to_speech: Eleven Labs API returned {response.status_code} - {response.text}")
             return jsonify({"status": "error", "text": "Text-to-speech conversion failed"}), response.status_code
     except Exception as e:
         print(f"Error in text_to_speech: {e}")
+        traceback.print_exc()
         print(request.get_json())
         return jsonify({"error": str(e)}), 400
-
-@Tyr.route('/process_file', methods=['POST'])
-def process_file():
-    global file_embeddings
-    file = request.files.get('file')
-    # Save the file to the /static/data folder
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(Tyr.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-    # Process the file using store_doc_embeds function
-    file_embeddings = tyr.store_doc_embeds(filepath)
-    print("done")
-    return jsonify(success=True)
-
-@Tyr.route('/get_answer', methods=['POST'])
-def get_answer():
-    global file_embeddings
-    query = str(request.get_json(force=True).get("conversation", ""))
-    history = []
-    if file_embeddings:
-        answer = tyr.conversational_chat(file_embeddings, query, history)
-        return jsonify({'text': answer})
-    else:
-        return jsonify(error='No file has been processed yet.')
 
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:5000')
