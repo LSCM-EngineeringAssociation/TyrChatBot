@@ -69,20 +69,20 @@ def store_doc_embeds(file, filename):
 
     base_embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     retriever = FAISS.from_texts(texts=chunks, embedding=base_embeddings, metadatas=[{"source": f"{i}-pl"} for i in range(len(chunks))]) # metadatas=[{"source": f"{i}-pl"} for i in range(len(pages))]
-    with open("static/embed_data/"+filename + ".pkl", "wb") as f:
+    with open("static/embed_data/" + filename + ".pkl", "wb") as f:
         pickle.dump(retriever, f)
 
 def get_doc_embeds(file_path):
     filename = os.path.splitext(os.path.basename(file_path))[0]
-    if not os.path.isfile(filename + ".pkl"):
+    if not os.path.isfile("static/embed_data/" + filename + ".pkl"):
         store_doc_embeds(file_path, filename)
 
-    with open(filename + ".pkl", "rb") as f:
+    with open("static/embed_data/" + filename + ".pkl", "rb") as f:
         vectors = pickle.load(f)
 
     return vectors
 
-def conversational_chat(vectors, query, history, temperature=0.75):
+def conversational_chat(vectors, query, history, temperature=0.7):
     prompt_template = """Use the following pieces of context to answer the question at the end in a deeply and extensive manner, use more than 200 words at all time to answer any questions.
     remember to always be resourceful and quote your sources with the given context in-text citation in MLA format so if the context given has a backing data supporting your response should be formatted as such:
     According to the "author name" the paper explains that ... "quote supporting your claim"...
