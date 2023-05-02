@@ -10,7 +10,6 @@ import os
 import glob
 import openai
 import pickle
-import pinecone
 from PyPDF2 import PdfReader
 from pydub import AudioSegment
 from langchain.chat_models import ChatOpenAI
