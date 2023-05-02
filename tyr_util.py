@@ -69,7 +69,7 @@ def store_doc_embeds(file, filename):
 
     base_embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     retriever = FAISS.from_texts(texts=chunks, embedding=base_embeddings, metadatas=[{"source": f"{i}-pl"} for i in range(len(chunks))]) # metadatas=[{"source": f"{i}-pl"} for i in range(len(pages))]
-    with open(filename + ".pkl", "wb") as f:
+    with open("static/embed_data/"+filename + ".pkl", "wb") as f:
         pickle.dump(retriever, f)
 
 def get_doc_embeds(file_path):
