@@ -9,6 +9,9 @@ from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
 import tyr_util as tyr
 from enum import IntEnum
+import serial
+import struct
+import librosa
 
 # Flask Controls
 Tyr = Flask(__name__)
@@ -209,7 +212,45 @@ def text_to_speech():
 
             with open('temp_audio.mp3', 'rb') as f:
                 audio_data = io.BytesIO(f.read())
+                y, sr = librosa.load(audio_data, sr=None)
             os.remove('temp_audio.mp3')
+
+            # Find the highest point in the audio signal
+            max_value = max(y)
+
+            # Define the interval length in seconds
+            interval_length = 0.5
+
+            # Calculate the number of samples per interval
+            samples_per_interval = int(sr * interval_length)
+
+            # Initialize an empty array to store the relative volume values
+            relative_volumes = []
+
+            # Loop through each interval in the audio signal
+            for i in range(0, len(y), samples_per_interval):
+                # Calculate the maximum value in the current interval
+                max_interval = max(y[i:i+samples_per_interval])
+                
+                # Calculate the relative volume compared to the highest point in the file
+                relative_volume = max_interval / max_value
+                
+                # Add the relative volume to the array
+                relative_volumes.append(relative_volume)
+
+            relative_volumes_int = []
+
+            for v in relative_volumes:
+                relative_volumes_int.append(int(150 * v))
+
+            # Open the serial port for communication
+            ser = serial.Serial('COM3', 9600)
+
+            # Send the number of data points to the Arduino Mega
+            ser.write(bytes([len(relative_volumes_int)]))
+
+            # Send the vector of integers to the Arduino Mega
+            ser.write(struct.pack(f'{len(relative_volumes_int)}i', *relative_volumes_int))
 
             return send_file(audio_data, mimetype='audio/mpeg', as_attachment=True, download_name='response.mp3')
         else:
