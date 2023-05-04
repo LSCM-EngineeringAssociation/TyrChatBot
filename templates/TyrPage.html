@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 </head>
-<body class="bg-gray-200 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-600 font-sans min-h-screen flex flex-col">
     <div class="bg-gray-800 w-64 h-screen fixed p-5 flex flex-col">
         <img class="mb-3 animate__animated animate__fadeInDown mx-auto h-24" src="/static/GOD_CHIBI.png" alt="">
         <h2 class="text-white text-center text-2xl mb-5">Ask Tyr</h2>
@@ -42,7 +42,7 @@
                 <label for="file-upload" class="form-label text-white">Upload a file:</label>
                 <input type="file" class="hidden" id="file-upload" accept=".pdf, .mp3">
                 <button type="button" class="btn btn-secondary w-full p-2 bg-gray-600 text-white rounded" id="upload-btn">Upload</button>
-                <div id="drop-zone" class="border-dashed border-2 border-gray-400 mt-2 p-2 text-center text-gray-400">Drag and drop a file here</div>
+                <div id="drop-zone" class="border-dashed border-2 border-gray-900 mt-2 p-2 text-center text-gray-400">Drag and drop a file here</div>
                 <div id="file-error" class="text-red-500 mt-2 hidden"></div>
             </div>
         </div>
@@ -55,12 +55,12 @@
         <div class="container mx-auto">
             <div class="row">
                 <div class="col-12">
-                    <div class="chat-messages border border-gray-300 rounded p-4 h-96 overflow-y-auto mb-4" id="chat-messages">
+                    <div class="chat-messages border border-gray-300 rounded p-4 overflow-y-auto mb-4" id="chat-messages" style="height: 800px;">
                         <!-- Chat messages will be appended here. -->
                     </div>
                     <form id="message-form">
                         <div class="input-group mb-3 flex">
-                            <input type="text" id="message-input" class="form-control flex-grow bg-gray-200 p-2 rounded-l" placeholder="Type your message" aria-label="Type your message" aria-describedby="submit-button">
+                            <input type="text" id="message-input" class="form-control flex-grow bg-gray-400 p-2 rounded-l" placeholder="Type your message" aria-label="Type your message" aria-describedby="submit-button">
                             <button type="submit" class="btn btn-primary bg-blue-600 text-white p-2 rounded-r" id="submit-button">Submit</button>
                         </div>
                     </form>
@@ -312,7 +312,7 @@
                 const userMessage = messageInput.val().trim();
 
                 if (userMessage) {
-                    chatMessages.append(`<div class="message user-message">You: ${userMessage}</div>`);
+                    chatMessages.append(`<div class="message bg-gray-400 text-white rounded p-2 mb-2 font-sans leading-7">You: ${userMessage}</div>`);
                     messageInput.val("");
 
                     chatMessages.scrollTop(chatMessages[0].scrollHeight);
@@ -342,7 +342,7 @@
                             });
                         }
 
-                        const assistantResponseDiv = $('<div class="message assistant-message"></div>');
+                        const assistantResponseDiv = $('<div class="message bg-gray-500 text-white rounded p-2 mb-2 font-sans leading-7"></div>');
                         chatMessages.append(assistantResponseDiv);
 
                         new TypeIt(assistantResponseDiv[0], {

@@ -134,7 +134,8 @@ def process_file():
 def get_answer():
     global file_embeddings
     global current_temperature
-    query = str(request.get_json(force=True).get("conversation", ""))
+    reinfString = "FOLLOW THESE GUIDELINES PERFECTLY: 1)Consider the given context to identify relevant information. Use analogies, real-world applications, or storytelling to make the answer more relatable and engaging for the reader. Break down complex concepts into smaller, more manageable parts, explaining each step logically.  2)Address any misconceptions or misunderstandings to clarify the information effectively. Customize your approach knowing the target audience is not well versed with the topic, ensuring that your response is accessible and relevant to them.  3)Be sure to include appropriate humor, where applicable, to make your response more memorable and approachable. Be patient, approachable, and encourage questions, as needed, to ensure understanding. 4)As you craft your response, always use at least 200 words to discuss the topic thoroughly. If you don't know the answer, be honest and admit that you don't know, rather than trying to fabricate a response. QUESTION:"
+    query = reinfString + str(request.get_json(force=True).get("conversation", ""))
     history = []
     if file_embeddings:
         answer = tyr.conversational_chat(vectors=file_embeddings, query=query, history=history, temperature=current_temperature)

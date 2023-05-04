@@ -12,6 +12,7 @@ import openai
 import pickle
 from PyPDF2 import PdfReader
 from pydub import AudioSegment
+from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -82,10 +83,11 @@ def get_doc_embeds(file_path):
     return vectors
 
 def conversational_chat(vectors, query, history, temperature=0.7):
-    prompt_template = """Use the following pieces of context to answer the question at the end in a deeply and extensive manner, use more than 200 words at all time to answer any questions.
-    remember to always be resourceful and quote your sources with the given context in-text citation in MLA format so if the context given has a backing data supporting your response should be formatted as such:
-    According to the "author name" the paper explains that ... "quote supporting your claim"...
-    If you don't know the answer, just say that you don't know, don't try to make up an answer. 
+    prompt_template = """FOLLOW THESE GUIDELINES PERFECTLY:
+    1)Consider the given context to identify relevant information. Use analogies, real-world applications, or storytelling to make the answer more relatable and engaging for the reader. Break down complex concepts into smaller, more manageable parts, explaining each step logically. 
+    2)Address any misconceptions or misunderstandings to clarify the information effectively. Customize your approach knowing the target audience is not well versed with the topic, ensuring that your response is accessible and relevant to them. 
+    3)Be sure to include appropriate humor, where applicable, to make your response more memorable and approachable. Be patient, approachable, and encourage questions, as needed, to ensure understanding.
+    4)As you craft your response, always use at least 200 words to discuss the topic thoroughly. If you don't know the answer, be honest and admit that you don't know, rather than trying to fabricate a response.
 
     {context}
 
@@ -95,7 +97,7 @@ def conversational_chat(vectors, query, history, temperature=0.7):
     QA_PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
     )
-    qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo", temperature=temperature), retriever=vectors.as_retriever(), chain_type="stuff", return_source_documents=True, qa_prompt=QA_PROMPT)
+    qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo", temperature=temperature), retriever=vectors.as_retriever(search_type="similarity", search_kwargs={"k":5}), chain_type="stuff", return_source_documents=True, qa_prompt=QA_PROMPT)
     result = qa({"question": query, "chat_history": history})
     history.append((query, result["answer"]))
     return result["answer"]
