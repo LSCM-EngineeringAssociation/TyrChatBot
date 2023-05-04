@@ -11,7 +11,6 @@ import tyr_util as tyr
 from enum import IntEnum
 import serial
 import struct
-import librosa
 
 # Flask Controls
 Tyr = Flask(__name__)
